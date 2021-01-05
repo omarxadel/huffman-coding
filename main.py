@@ -1,15 +1,30 @@
 def frequency_map(data):
-    return None
+    # TODO: GET FREQUENCY OF EACH CHARACTER
+    return {}
 
 
-# def huffman_coding(map):#TODO:ADD HUFFMAN CODING
+def huffman_coding(frequency_map):
+    # TODO: HUFFMAN CODING ALGORITHM
+    return {}, ""
+
+
+def translate(data, language_map):
+    # TODO: TRANSLATE THE INPUT DATA INTO THE CORRESPONDING CODE IN MAP
+    return ""
+
 
 def decompress():
-    print("Decompression")
+    print("Decompression Selected")
 
 
-def compress():
-    print("Compress")
+def compress(data):
+    print(data)
+    # TODO: UNCOMMENT THE FOLLOWING WHEN READY
+    #freq_map = {}
+    #freq_map = frequency_map(data)
+    #language_map = huffman_coding(freq_map)
+    #compressed_data = translate(data, language_map)
+    #return language_map, compressed_data
 
 
 if __name__ == '__main__':
@@ -22,11 +37,14 @@ if __name__ == '__main__':
         except IOError:
             filename = input("Enter a valid file name ")
 
+    # EXTRACT FILE DATA INTO A VARIABLE
+    file_data = f.read()
+
     # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
     while True:
         op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
         if op_type == 0:
-            compress()
+            compress(file_data)
             break
         elif op_type == 1:
             decompress()
@@ -34,4 +52,3 @@ if __name__ == '__main__':
         else:
             print("Please enter a valid number")
             continue
-
