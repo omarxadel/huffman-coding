@@ -1,6 +1,12 @@
 def frequency_map(data):
     # TODO: GET FREQUENCY OF EACH CHARACTER
-    return {}
+    frequency ={}
+    for character in data:
+        if not character in frequency:
+            frequency[character] = 0
+        else:
+            frequency[character] += 1
+    return frequency
 
 
 def huffman_coding(frequency_map):
