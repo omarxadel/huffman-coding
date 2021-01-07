@@ -54,34 +54,81 @@ def assign_code(node, code):
     return d
 
 
-def translate(data, language_map):
-    # TODO: TRANSLATE THE INPUT DATA INTO THE CORRESPONDING CODE IN MAP
-    bits = ""
+def cipher(data, language_map):
     output = ""
-    i = -1
+    bits = ""
+    i = 0
+    padding = 0
     for char in data:
         bits += language_map[char]
     while len(bits) > 0:
-        bit_code = bits[i-8:i]
-        bit_code = str(int(bit_code, 2))
+        bit_code = bits[i:i + 8]
+        while len(bit_code) < 8:
+            bit_code = bit_code + '0'
+            padding += 1
+        bit_code = chr(int(bit_code, 2))
         output += bit_code
-        bits = bits[:i-8]
+        bits = bits[i + 8:]
+    return output, padding
+
+
+def decipher(data, language_map, padding):
+    output = ""
+    bits = ""
+    code = ""
+    for c in data:
+        c = ord(c)
+        c = f'{c:08b}'
+        bits += c
+    bits = bits[:-padding]
+    for bit in bits:
+        code += bit
+        if code in language_map:
+            output += language_map[code]
+            code = ""
     return output
 
 
+def translate(data, language_map, mode=0, padding=0):
+    if mode == 0:
+        return cipher(data, language_map)
+    else:
+        return decipher(data, language_map, padding)
 
-def decompress():
-    print("Decompression Selected")
+
+def extract_header(char_count, buff):
+    d = {}
+    for i in range(char_count):
+        line, buff = buff.split("\n", 1)
+        char, code_word = line.split(" ")
+        d[code_word] = char
+    padding, buff = buff.split("\n", 1)
+    padding = int(padding)
+    return d, padding, buff
+
+
+def create_header(language_map, padding):
+    # TODO: CREATE HEADER FOR FILE WITH FOLLOWING STRUCTURE
+    # FOR INPUT aabcbaab
+    # 3     (NUMBER OF UNIQUE CHARACTERS)
+    # a 1   }
+    # b 01  }   CODES
+    # c 00  }
+    # 4     (PADDING)
+    return ""
+
+
+def decompress(char_count, buff):
+    language_map, padding, data = extract_header(char_count, buff)
+    return translate(data, language_map, mode=1, padding=padding)
 
 
 def compress(data):
-    # TODO: UNCOMMENT THE FOLLOWING WHEN READY
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
-    compressed_data = translate(data, language_map)
-    print(compressed_data)
-    print(language_map)
-    # return language_map, compressed_data
+    compressed_data, padding = translate(data, language_map)
+    header = create_header(language_map, padding)
+    return compressed_data, header
 
 
 if __name__ == '__main__':
@@ -94,17 +141,22 @@ if __name__ == '__main__':
         except IOError:
             filename = input("Enter a valid file name ")
 
-    # EXTRACT FILE DATA INTO A VARIABLE
-    file_data = f.read()
-
     # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
     while True:
         op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
         if op_type == 0:
+            file_data = f.read()
             compress(file_data)
             break
         elif op_type == 1:
-            decompress()
+            n = f.readline()
+            file_data = f.read()
+            try:
+                n = int(n)
+            except TypeError:
+                print("Invalid file structure")
+                exit(-1)
+            decompress(n, file_data)
             break
         else:
             print("Please enter a valid number")
