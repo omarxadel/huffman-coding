@@ -1,3 +1,8 @@
+import datetime
+import os
+import time
+
+
 class Node:
     def __init__(self, value, char=None, left=None, right=None):
         self.value = value
@@ -101,14 +106,12 @@ def extract_header(char_count, buff):
 
 
 def create_header(language_map, padding):
-    # TODO: CREATE HEADER FOR FILE WITH FOLLOWING STRUCTURE
-    # FOR INPUT aabcbaab
-    # 3     (NUMBER OF UNIQUE CHARACTERS)
-    # a 1   }
-    # b 01  }   CODES
-    # c 00  }
-    # 4     (PADDING)
-    return ""
+    output = ""
+    output += str(len(language_map)) + "\n"
+    for key in language_map.keys():
+        output += key + " " + str(language_map[key]) + "\n"
+    output += str(padding) + "\n"
+    return output
 
 
 def decompress(char_count, buff):
@@ -133,12 +136,15 @@ if __name__ == '__main__':
             break
         except IOError:
             filename = input("Enter a valid file name ")
+    file_stats = os.stat(filename)
 
     # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
     while True:
         op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
+        start = time.time()
         if op_type == 0:
             file_data = f.read()
+            print(f'Original file Size in Bytes is {file_stats.st_size}')
             compress(file_data)
             break
         elif op_type == 1:
@@ -154,3 +160,6 @@ if __name__ == '__main__':
         else:
             print("Please enter a valid number")
             continue
+
+    end = time.time()
+    print(f"The execution time of the program is {(end - start)*1000} ms")
