@@ -56,7 +56,18 @@ def assign_code(node, code):
 
 def translate(data, language_map):
     # TODO: TRANSLATE THE INPUT DATA INTO THE CORRESPONDING CODE IN MAP
-    return ""
+    bits = ""
+    output = ""
+    i = -1
+    for char in data:
+        bits += language_map[char]
+    while len(bits) > 0:
+        bit_code = bits[i-8:i]
+        bit_code = str(int(bit_code, 2))
+        output += bit_code
+        bits = bits[:i-8]
+    return output
+
 
 
 def decompress():
@@ -67,7 +78,9 @@ def compress(data):
     # TODO: UNCOMMENT THE FOLLOWING WHEN READY
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
-    # compressed_data = translate(data, language_map)
+    compressed_data = translate(data, language_map)
+    print(compressed_data)
+    print(language_map)
     # return language_map, compressed_data
 
 
