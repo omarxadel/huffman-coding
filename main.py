@@ -89,13 +89,6 @@ def decipher(data, language_map, padding):
     return output
 
 
-def translate(data, language_map, mode=0, padding=0):
-    if mode == 0:
-        return cipher(data, language_map)
-    else:
-        return decipher(data, language_map, padding)
-
-
 def extract_header(char_count, buff):
     d = {}
     for i in range(char_count):
@@ -120,13 +113,13 @@ def create_header(language_map, padding):
 
 def decompress(char_count, buff):
     language_map, padding, data = extract_header(char_count, buff)
-    return translate(data, language_map, mode=1, padding=padding)
+    return decipher(data, language_map, padding)
 
 
 def compress(data):
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
-    compressed_data, padding = translate(data, language_map)
+    compressed_data, padding = cipher(data, language_map)
     header = create_header(language_map, padding)
     return compressed_data, header
 
