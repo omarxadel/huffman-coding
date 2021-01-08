@@ -58,7 +58,7 @@ def assign_code(node, code):
     return d
 
 
-def cipher(data, language_map):
+def encode(data, language_map):
     output = ""
     bits = ""
     i = 0
@@ -76,7 +76,7 @@ def cipher(data, language_map):
     return output, padding
 
 
-def decipher(data, language_map, padding):
+def decode(data, language_map, padding):
     output = ""
     bits = ""
     code = ""
@@ -126,13 +126,13 @@ def create_header(language_map, padding):
 
 def decompress(char_count, buff):
     language_map, padding, data = extract_header(char_count, buff)
-    return decipher(data, language_map, padding)
+    return decode(data, language_map, padding)
 
 
 def compress(data):
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
-    compressed_data, padding = cipher(data, language_map)
+    compressed_data, padding = encode(data, language_map)
     header = create_header(language_map, padding)
     output = header + compressed_data
     return output
