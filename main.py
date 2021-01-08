@@ -77,7 +77,7 @@ def cipher(data, language_map):
 
 
 def decipher(data, language_map, padding):
-    # output_path = open ("decompressed_file.txt" , "w")
+    output_path = open ("decompressed_file.txt" , "w")
     output = ""
     bits = ""
     code = ""
@@ -91,7 +91,8 @@ def decipher(data, language_map, padding):
         if code in language_map:
             output += language_map[code]
             code = ""
-    # output_path.write(output)
+    output_path.write(output)
+    print("Decompressed")
     return output
 
 
@@ -136,16 +137,16 @@ def get_file():
     name = input("Enter file name ")
     while True:
         try:
-            f = open(name, 'r', encoding="utf8")
+            file = open(name, 'r', encoding="utf8")
             break
         except IOError:
             name = input("Enter a valid file name ")
-    return name
+    return name, file
 
 
 if __name__ == '__main__':
     # GET FILE NAME
-    filename = get_file()
+    filename, f = get_file()
     file_stats = os.stat(filename)
     filename, file_extension = os.path.splitext(filename)
 
