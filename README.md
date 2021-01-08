@@ -28,19 +28,19 @@ Text: aabcbaab
 |4              		                | Padding count                         |
 |ÑÐ                                 | Actual data, code in place of char    |
 # Algorithm
-0. Compression
-  0.0. read file
-  0.0. create frequency map for characters
-  0.0. create min heap as per character frequency
-  0.0. construct huffman tree from min heap
-  0.0. create language map that translates each character to codeword as per huffman tree encoding
-  0.0. convert each character in the file to its equivalent character and add the header file
-  0.0. end
-0. Decompression
-  0.0. read file
-  0.0. extract the header and create language map that translates bit patterns to characters
-  0.0. convert each bit pattern to its equivalent character in the file
-  0.0. end
+1. Compression
+    1. read file
+    1. create frequency map for characters
+    1. create min heap as per character frequency
+    1. construct huffman tree from min heap
+    1. create language map that translates each character to codeword as per huffman tree encoding
+    1. convert each character in the file to its equivalent character and add the header file
+    1. end
+1. Decompression
+    1. read file
+    1. extract the header and create language map that translates bit patterns to characters
+    1. convert each bit pattern to its equivalent character in the file
+    1. end
 # Contributing
 Please feel free to submit issues and pull requests. I appreciate bug reports.
 
