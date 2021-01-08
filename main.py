@@ -78,7 +78,7 @@ def cipher(data, language_map):
 
 
 def decipher(data, language_map, padding):
-    #output_path = open ("decompressed_file.txt" , "w")
+    output_path = open ("decompressed_file.txt" , "w")
     output = ""
     bits = ""
     code = ""
@@ -92,7 +92,8 @@ def decipher(data, language_map, padding):
         if code in language_map:
             output += language_map[code]
             code = ""
-    #output_path.write(output)
+    output_path.write(output)
+    print("Decompressed")
     return output
 
 
