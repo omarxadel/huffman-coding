@@ -108,14 +108,11 @@ def extract_header(char_count, buff):
 
 
 def create_header(language_map, padding):
-    output_path = open("compressed_file.bin", "w")
     output = ""
     output += str(len(language_map)) + "\n"
     for key in language_map.keys():
         output += key + " " + str(language_map[key]) + "\n"
     output += str(padding) + "\n"
-    output_path.write(output)
-    print("Compressed")
     return output
 
 
@@ -125,10 +122,14 @@ def decompress(char_count, buff):
 
 
 def compress(data):
+    output_path = open("compressed_file.bin", "w")
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
     compressed_data, padding = cipher(data, language_map)
     header = create_header(language_map, padding)
+    output = header + compressed_data 
+    output_path.write(output)
+    print("Compressed")
     return compressed_data, header
 
 
