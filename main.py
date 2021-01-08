@@ -78,6 +78,7 @@ def cipher(data, language_map):
 
 
 def decipher(data, language_map, padding):
+    #output_path = open ("decompressed_file.txt" , "w")
     output = ""
     bits = ""
     code = ""
@@ -91,6 +92,7 @@ def decipher(data, language_map, padding):
         if code in language_map:
             output += language_map[code]
             code = ""
+    #output_path.write(output)
     return output
 
 
@@ -106,11 +108,14 @@ def extract_header(char_count, buff):
 
 
 def create_header(language_map, padding):
+    output_path = open("compressed_file.bin", "w")
     output = ""
     output += str(len(language_map)) + "\n"
     for key in language_map.keys():
         output += key + " " + str(language_map[key]) + "\n"
     output += str(padding) + "\n"
+    output_path.write(output)
+    print("Compressed")
     return output
 
 
