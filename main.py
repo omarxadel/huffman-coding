@@ -19,7 +19,7 @@ class Node:  # HEAP NODE CLASS
         return self.char
 
 
-def frequency_map(data):    # FREQUENCY MAP GENERATOR
+def frequency_map(data):  # FREQUENCY MAP GENERATOR
     frequency = {}
     for character in data:
         if character not in frequency:
@@ -77,7 +77,6 @@ def cipher(data, language_map):
 
 
 def decipher(data, language_map, padding):
-    output_path = open ("decompressed_file.txt" , "w")
     output = ""
     bits = ""
     code = ""
@@ -91,16 +90,25 @@ def decipher(data, language_map, padding):
         if code in language_map:
             output += language_map[code]
             code = ""
-    output_path.write(output)
-    print("Decompressed")
     return output
 
 
 def extract_header(char_count, buff):
     d = {}
     for i in range(char_count):
-        line, buff = buff.split("\n", 1)
-        char, code_word = line.split(" ")
+        if buff[0] == '\n':  # CHECK IF NEXT CHAR IS NEW LINE CHAR
+            empty, line, buff = buff.split("\n", 2)  # REMOVE TWO LINES
+            char = "\n"
+            code_word = line.split()[0]  # REMOVE ANY EMPTY SPACES WITH THE CODE WORD
+        else:
+            line, buff = buff.split("\n", 1)
+            line = line.split()
+            if len(line) == 1:  # CHECK IF NEXT CHAR IS EMPTY SPACE
+                char = " "
+                code_word = line[0]
+            else:
+                char = line[0]
+                code_word = line[1]
         d[code_word] = char
     padding, buff = buff.split("\n", 1)
     padding = int(padding)
@@ -122,57 +130,92 @@ def decompress(char_count, buff):
 
 
 def compress(data):
-    output_path = open("compressed_file.bin", "w")
     freq_map = frequency_map(data)
     language_map = huffman_coding(freq_map)
     compressed_data, padding = cipher(data, language_map)
     header = create_header(language_map, padding)
     output = header + compressed_data
-    output_path.write(output)
-    print("Compressed")
-    return compressed_data, header
+    return output
 
 
 def get_file():
     name = input("Enter file name ")
     while True:
         try:
-            file = open(name, 'r', encoding="utf8")
+            file = open(name, 'r', encoding='utf-8')
             break
         except IOError:
             name = input("Enter a valid file name ")
     return name, file
 
 
+def create_output(data, name, extension):
+    try:
+        output_path = open(name + extension, "w", encoding='utf-8')
+        output_path.write(data)
+        print("Success, data saved at: " + name + extension)
+        return os.stat(name + extension).st_size
+    except IOError:
+        print("Something went wrong")
+        exit(-1)
+
+
 if __name__ == '__main__':
-    # GET FILE NAME
-    filename, f = get_file()
-    file_stats = os.stat(filename)
-    filename, file_extension = os.path.splitext(filename)
+    run = True
+    start = 0
+    end = 0
 
-    # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
-    while True:
-        op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
-        start = time.time()
+    while run:
+        # GET FILE NAME
+        file_data = ""
+        filename, f = get_file()
+        file_stats = os.stat(filename)
+        filename, file_extension = os.path.splitext(filename)
+        original_size = file_stats.st_size
+
+        # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
+        while True:
+            op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
+            if op_type == 0:
+                file_data = f.read()
+
+                # GET COMPRESSED FILE TYPE
+                file_extension = int(input("Enter the compression file type (0 for .txt | 1 for .bin) "))
+
+                if file_extension == 0:
+                    file_extension = ".txt"
+                else:
+                    file_extension = ".bin"
+
+                start = time.time()
+                file_data = compress(file_data)
+                end = time.time()
+                break
+
+            elif op_type == 1:
+                n = f.readline()
+                file_data = f.read()
+
+                try:
+                    n = int(n)
+                except TypeError:
+                    print("Invalid file structure")
+                    exit(-1)
+
+                start = time.time()
+                file_data = decompress(n, file_data)
+                end = time.time()
+                file_extension = ".txt"
+                break
+            else:
+                print("Please enter a valid number")
+                continue
+
+        new_size = create_output(file_data, filename, file_extension)
         if op_type == 0:
-            file_data = f.read()
-            # print(f'Original file Size in Bytes is {file_stats.st_size}')
-            compress(file_data)
-            break
-        elif op_type == 1:
-            n = f.readline()
-            file_data = f.read()
-            try:
-                n = int(n)
-            except TypeError:
-                print("Invalid file structure")
-                exit(-1)
-            decompress(n, file_data)
-            break
-        else:
-            print("Please enter a valid number")
-            continue
-
-    end = time.time()
-    total = str(round((end - start) * 1000, 2))
-    print(f"The execution time of the program is {total}ms")
+            percentage = format(new_size / original_size * 100, ".2f")
+            print(f"Compression percentage is {percentage}%")
+        total = format((end - start) * 1000, ".2f")
+        print(f"The execution time of the program is {total}ms")
+        x = int(input("Do you want to compress or decompress more files? (0 for NO | 1 for YES) "))
+        run = (x == 1)
