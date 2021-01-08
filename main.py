@@ -1,9 +1,8 @@
-import datetime
 import os
 import time
 
 
-class Node:
+class Node:  # HEAP NODE CLASS
     def __init__(self, value, char=None, left=None, right=None):
         self.value = value
         self.char = char
@@ -20,7 +19,7 @@ class Node:
         return self.char
 
 
-def frequency_map(data):
+def frequency_map(data):    # FREQUENCY MAP GENERATOR
     frequency = {}
     for character in data:
         if character not in frequency:
@@ -78,7 +77,7 @@ def cipher(data, language_map):
 
 
 def decipher(data, language_map, padding):
-    #output_path = open ("decompressed_file.txt" , "w")
+    # output_path = open ("decompressed_file.txt" , "w")
     output = ""
     bits = ""
     code = ""
@@ -92,7 +91,7 @@ def decipher(data, language_map, padding):
         if code in language_map:
             output += language_map[code]
             code = ""
-    #output_path.write(output)
+    # output_path.write(output)
     return output
 
 
@@ -127,22 +126,28 @@ def compress(data):
     language_map = huffman_coding(freq_map)
     compressed_data, padding = cipher(data, language_map)
     header = create_header(language_map, padding)
-    output = header + compressed_data 
+    output = header + compressed_data
     output_path.write(output)
     print("Compressed")
     return compressed_data, header
 
 
-if __name__ == '__main__':
-    # GET FILE NAME
-    filename = input("Enter file name ")
+def get_file():
+    name = input("Enter file name ")
     while True:
         try:
-            f = open(filename, 'r', encoding="utf8")
+            f = open(name, 'r', encoding="utf8")
             break
         except IOError:
-            filename = input("Enter a valid file name ")
+            name = input("Enter a valid file name ")
+    return name
+
+
+if __name__ == '__main__':
+    # GET FILE NAME
+    filename = get_file()
     file_stats = os.stat(filename)
+    filename, file_extension = os.path.splitext(filename)
 
     # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
     while True:
@@ -150,7 +155,7 @@ if __name__ == '__main__':
         start = time.time()
         if op_type == 0:
             file_data = f.read()
-            print(f'Original file Size in Bytes is {file_stats.st_size}')
+            # print(f'Original file Size in Bytes is {file_stats.st_size}')
             compress(file_data)
             break
         elif op_type == 1:
@@ -168,4 +173,5 @@ if __name__ == '__main__':
             continue
 
     end = time.time()
-    print(f"The execution time of the program is {(end - start)*1000} ms")
+    total = str(round((end - start) * 1000, 2))
+    print(f"The execution time of the program is {total}ms")
