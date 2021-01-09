@@ -65,6 +65,11 @@ def encode(data, language_map):
     padding = 0
     for char in data:
         bits += language_map[char]
+        if len(bits) > 8:
+            bit_code = bits[i:i + 8]
+            bit_code = chr(int(bit_code, 2))
+            output += bit_code
+            bits = bits[i + 8:]
     while len(bits) > 0:
         bit_code = bits[i:i + 8]
         while len(bit_code) < 8:
@@ -84,7 +89,8 @@ def decode(data, language_map, padding):
         c = ord(c)
         c = f'{c:08b}'
         bits += c
-    bits = bits[:-padding]
+    if padding > 0:
+        bits = bits[:-padding]
     for bit in bits:
         code += bit
         if code in language_map:
@@ -95,20 +101,18 @@ def decode(data, language_map, padding):
 
 def extract_header(char_count, buff):
     d = {}
+    buff = str(buff, 'utf-8')
     for i in range(char_count):
-        if buff[0] == '\n':  # CHECK IF NEXT CHAR IS NEW LINE CHAR
-            empty, line, buff = buff.split("\n", 2)  # REMOVE TWO LINES
-            char = "\n"
-            code_word = line.split()[0]  # REMOVE ANY EMPTY SPACES WITH THE CODE WORD
-        else:
+        line, buff = buff.split("\n", 1)
+        if not line:
             line, buff = buff.split("\n", 1)
-            line = line.split()
-            if len(line) == 1:  # CHECK IF NEXT CHAR IS EMPTY SPACE
-                char = " "
-                code_word = line[0]
-            else:
-                char = line[0]
-                code_word = line[1]
+            char = "\n"
+            code_word = line.split(None, 1)[0]
+        elif line[0] == " " or line[0] == "\r":
+            char = line[0]
+            code_word = line.split(None, 1)[0]
+        else:
+            char, code_word = line.split()
         d[code_word] = char
     padding, buff = buff.split("\n", 1)
     padding = int(padding)
@@ -135,6 +139,7 @@ def compress(data):
     compressed_data, padding = encode(data, language_map)
     header = create_header(language_map, padding)
     output = header + compressed_data
+    output = bytes(output, 'UTF-8')
     return output
 
 
@@ -142,22 +147,32 @@ def get_file():
     name = input("Enter file name ")
     while True:
         try:
-            file = open(name, 'r', encoding='utf-8')
+            file = open(name, 'rb')
             break
         except IOError:
             name = input("Enter a valid file name ")
     return name, file
 
 
-def create_output(data, name, extension):
-    try:
-        output_path = open(name + extension, "w", encoding='utf-8')
-        output_path.write(data)
-        print("Success, data saved at: " + name + extension)
-        return os.stat(name + extension).st_size
-    except IOError:
-        print("Something went wrong")
-        exit(-1)
+def create_output(data, name, extension, mode=0):
+    if mode == 0:
+        try:
+            output_path = open(name + extension, "wb")
+            output_path.write(data)
+            print("Success, data saved at: " + name + extension)
+            return os.stat(name + extension).st_size
+        except IOError:
+            print("Something went wrong")
+            exit(-1)
+    else:
+        try:
+            output_path = open(name + extension, "w", encoding='utf-8', newline='\n')
+            output_path.write(data)
+            print("Success, data saved at: " + name + extension)
+            return os.stat(name + extension).st_size
+        except IOError:
+            print("Something went wrong")
+            exit(-1)
 
 
 if __name__ == '__main__':
@@ -178,7 +193,7 @@ if __name__ == '__main__':
             op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
             if op_type == 0:
                 file_data = f.read()
-
+                file_data = str(file_data, 'utf-8')
                 # GET COMPRESSED FILE TYPE
                 file_extension = int(input("Enter the compression file type (0 for .txt | 1 for .bin) "))
 
@@ -211,7 +226,7 @@ if __name__ == '__main__':
                 print("Please enter a valid number")
                 continue
 
-        new_size = create_output(file_data, filename, file_extension)
+        new_size = create_output(file_data, filename, file_extension, op_type)
         if op_type == 0:
             percentage = format(new_size / original_size * 100, ".2f")
             print(f"Compression percentage is {percentage}%")
