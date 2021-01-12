@@ -117,7 +117,7 @@ def decode(data, language_map):
 
 
 def decompress(path):
-    data = read_file(path)
+    data = read_file(path, mode=1)
     data = list(data)
 
     mode = int(data[0])
@@ -133,6 +133,9 @@ def decompress(path):
     data = data[n_padding:]
 
     data = decode(data, reversed_tree)
+
+    name = str(os.path.splitext(path)[0])
+
     if mode == 0:
         output = ""
         for num in data:
@@ -143,47 +146,51 @@ def decompress(path):
         for i in range(0, len(output), 8):
             b_arr.append(int(output[i:i + 8], 2))
 
-        create_output(str(b_arr, 'utf-8'), path, mode=1)
+        create_output(str(b_arr, 'utf-8'), name + '.txt', mode=1)
     else:
         op_files = array.array('B', data).tobytes().split(b'\x11\x22\x33')
         for i, file in enumerate(op_files[0:len(op_files) - 1]):
-            create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), 'decompressed' + str(i) + '.txt', mode=1)
+            create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), name + str(i) + '.txt', mode=1)
 
 
 def compress(path, mode=0):
     if mode == 0:
-        data = str(path.read(), 'utf-8')
+        name = str(os.path.splitext(path)[0])
+        data = str(read_file(path), 'utf-8')
         freq_map = frequency_map(data)
         language_map, compressed_header = huffman_coding(freq_map)
         output = encode(data, language_map, compressed_header, mode=mode)
         output = bytes(output, 'UTF-8')
-        size = create_output(output, path, 0)
+        size = create_output(output, name + ".bin", 0)
     elif mode == 1:
         os.chdir(path)
         data = bytes()
         for file in os.listdir(path):
             if file.endswith(".txt"):
-                data += file.read() + b'\x11\x22\x33'
+                data += read_file(file, mode=0) + b'\x11\x22\x33'
         data = str(data, 'utf-8')
         freq_map = frequency_map(data)
         language_map, compressed_header = huffman_coding(freq_map)
         output = encode(data, language_map, compressed_header, mode=mode)
         output = bytes(output, 'UTF-8')
         os.chdir('..')
-        size = create_output(output, "Compressed.bin", 0)
-        os.chdir(path)
+        size = create_output(output, os.path.basename(path)+"_compressed.bin", 0)
         os.chdir(cwd)
     return size
 
 
-def read_file(path):
-    f = open(path, 'rb')
-    data = ""
-    byte = f.read(1)
-    while len(byte) > 0:
-        data += f"{bin(ord(byte))[2:]:0>8}"
+def read_file(path, mode=0):
+    if mode == 0:
+        f = open(path, 'rb')
+        return f.read()
+    else:
+        f = open(path, 'rb')
+        data = ""
         byte = f.read(1)
-    return data
+        while len(byte) > 0:
+            data += f"{bin(ord(byte))[2:]:0>8}"
+            byte = f.read(1)
+        return data
 
 
 def create_output(data, path, mode=0, first=True):
