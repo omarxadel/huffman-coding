@@ -116,55 +116,22 @@ def decode(data, language_map):
     return output
 
 
-def extract_header(char_count, buff):
-    d = {}
-    buff = str(buff, 'utf-8')
-    for i in range(char_count):
-        line, buff = buff.split("\n", 1)
-        if not line:
-            line, buff = buff.split("\n", 1)
-            char = "\n"
-            code_word = line.split(None, 1)[0]
-        elif line[0] == " " or line[0] == "\r":
-            char = line[0]
-            code_word = line.split(None, 1)[0]
-        else:
-            char, code_word = line.split()
-        d[code_word] = char
-    padding, buff = buff.split("\n", 1)
-    padding = int(padding)
-    return d, padding, buff
-
-
-def create_header(language_map, padding):
-    output = ""
-    output += str(len(language_map)) + "\n"
-    header_size = len(bytes(output, 'utf-8'))
-    for key in language_map.keys():
-        output += key + " " + str(language_map[key]) + "\n"
-    output += str(padding) + "\n"
-    return output, header_size
-
-
 def decompress(path):
-    f = open(path, 'rb')
-    data = ""
-
-    # Read the file byte by byte
-    byte = f.read(1)
-    while len(byte) > 0:
-        data += f"{bin(ord(byte))[2:]:0>8}"
-        byte = f.read(1)
+    data = read_file(path)
     data = list(data)
+
     mode = int(data[0])
     del data[0]
+
     node = decode_tree(data)
     d = assign_code(node)
     reversed_tree = {v: k for k, v in d.items()}
+
     n_padding = data[:8]
     n_padding = int("".join(n_padding), 2)
     data = data[8:]
     data = data[n_padding:]
+
     data = decode(data, reversed_tree)
     if mode == 0:
         output = ""
@@ -185,7 +152,7 @@ def decompress(path):
 
 def compress(path, mode=0):
     if mode == 0:
-        data = str(read_file(path), 'utf-8')
+        data = str(path.read(), 'utf-8')
         freq_map = frequency_map(data)
         language_map, compressed_header = huffman_coding(freq_map)
         output = encode(data, language_map, compressed_header, mode=mode)
@@ -196,7 +163,7 @@ def compress(path, mode=0):
         data = bytes()
         for file in os.listdir(path):
             if file.endswith(".txt"):
-                data += read_file(file) + b'\x11\x22\x33'
+                data += file.read() + b'\x11\x22\x33'
         data = str(data, 'utf-8')
         freq_map = frequency_map(data)
         language_map, compressed_header = huffman_coding(freq_map)
@@ -211,7 +178,12 @@ def compress(path, mode=0):
 
 def read_file(path):
     f = open(path, 'rb')
-    return f.read()
+    data = ""
+    byte = f.read(1)
+    while len(byte) > 0:
+        data += f"{bin(ord(byte))[2:]:0>8}"
+        byte = f.read(1)
+    return data
 
 
 def create_output(data, path, mode=0, first=True):
