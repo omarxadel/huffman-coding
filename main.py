@@ -33,7 +33,7 @@ def frequency_map(data):  # FREQUENCY MAP GENERATOR
     return frequency
 
 
-def huffman_coding(freq_map):   # HUFFMAN CODING ALGORITHM
+def huffman_coding(freq_map):  # HUFFMAN CODING ALGORITHM
     freq_map = sorted(freq_map.items(), key=lambda x: x[1])
     nodes = []
     for key, value in freq_map:
@@ -54,7 +54,7 @@ def huffman_coding(freq_map):   # HUFFMAN CODING ALGORITHM
     return d, compressed_tree
 
 
-def encode_tree(node, code):    # ENCODE TREE FOR HEADER
+def encode_tree(node, code):  # ENCODE TREE FOR HEADER
     if node.is_leaf():
         code += "1"
         code += f"{ord(node.get_char()):08b}"
@@ -83,7 +83,7 @@ def decode_tree(data):  # DECODE TREE FROM HEADER
         return Node(None, left=left, right=right)
 
 
-def assign_code(node, code=''): # ASSIGN CODES TO A HUFFMAN TREE
+def assign_code(node, code=''):  # ASSIGN CODES TO A HUFFMAN TREE
     if not node.left and not node.right:
         return {node.get_char(): code}
     d = dict()
@@ -105,7 +105,7 @@ def encode(data, language_map, compressed_header, mode=0):  # ENCODE FILE DATA I
     return output
 
 
-def decode(data, language_map): # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
+def decode(data, language_map):  # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
     code = ""
     output = []
     for bit in data:
@@ -116,7 +116,7 @@ def decode(data, language_map): # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
     return output
 
 
-def decompress(path):   # DECOMPRESS FILE DATA
+def decompress(path):  # DECOMPRESS FILE DATA
     data = read_file(path, mode=1)
     data = list(data)
 
@@ -153,13 +153,15 @@ def decompress(path):   # DECOMPRESS FILE DATA
             create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), name + str(i) + '.txt', mode=1)
 
 
-def compress(path, mode=0): # COMPRESS FILE DATA
+def compress(path, mode=0):  # COMPRESS FILE DATA
     if mode == 0:
         name = str(os.path.splitext(path)[0])
         data = str(read_file(path), 'utf-8')
+
         freq_map = frequency_map(data)
         language_map, compressed_header = huffman_coding(freq_map)
         output = encode(data, language_map, compressed_header, mode=mode)
+
         output = bytes(output, 'UTF-8')
         size = create_output(output, name + ".bin", 0)
     elif mode == 1:
@@ -174,12 +176,12 @@ def compress(path, mode=0): # COMPRESS FILE DATA
         output = encode(data, language_map, compressed_header, mode=mode)
         output = bytes(output, 'UTF-8')
         os.chdir('..')
-        size = create_output(output, os.path.basename(path)+"_compressed.bin", 0)
+        size = create_output(output, os.path.basename(path) + "_compressed.bin", 0)
         os.chdir(cwd)
     return size
 
 
-def read_file(path, mode=0):    # READ FILE DATA
+def read_file(path, mode=0):  # READ FILE DATA
     if mode == 0:
         f = open(path, 'rb')
         return f.read()
