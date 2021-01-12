@@ -23,6 +23,32 @@ class Node:  # HEAP NODE CLASS
 cwd = os.getcwd()
 
 
+def compress(path, mode=0):  # COMPRESS FILE DATA
+    if mode == 0:
+        name = str(os.path.splitext(path)[0])
+        data = str(read_file(path), 'utf-8')
+        freq_map = frequency_map(data)
+        language_map, compressed_header = huffman_coding(freq_map)
+        output = encode(data, language_map, compressed_header, mode=mode)
+        output = bytes(output, 'UTF-8')
+        size = create_output(output, name + ".bin", 0)
+    elif mode == 1:
+        os.chdir(path)
+        data = bytes()
+        for file in os.listdir(path):
+            if file.endswith(".txt"):
+                data += read_file(file, mode=0) + b'\x11\x22\x33'
+        data = str(data, 'utf-8')
+        freq_map = frequency_map(data)
+        language_map, compressed_header = huffman_coding(freq_map)
+        output = encode(data, language_map, compressed_header, mode=mode)
+        output = bytes(output, 'UTF-8')
+        os.chdir('..')
+        size = create_output(output, os.path.basename(path) + "_compressed.bin", 0)
+        os.chdir(cwd)
+    return size
+
+
 def frequency_map(data):  # FREQUENCY MAP GENERATOR
     frequency = {}
     for character in data:
@@ -33,7 +59,7 @@ def frequency_map(data):  # FREQUENCY MAP GENERATOR
     return frequency
 
 
-def huffman_coding(freq_map):   # HUFFMAN CODING ALGORITHM
+def huffman_coding(freq_map):  # HUFFMAN CODING ALGORITHM
     freq_map = sorted(freq_map.items(), key=lambda x: x[1])
     nodes = []
     for key, value in freq_map:
@@ -51,10 +77,13 @@ def huffman_coding(freq_map):   # HUFFMAN CODING ALGORITHM
         nodes[i:i] = [node]
     compressed_tree = encode_tree(nodes[0], "")
     d = assign_code(nodes[0], '')
+    print("Byte\tCode\t\tNew code")
+    for key in d.keys():
+        print(str(ord(key)) + "\t\t" + f'{(ord(key)):08b}' + "\t" + str(d[key]))
     return d, compressed_tree
 
 
-def encode_tree(node, code):    # ENCODE TREE FOR HEADER
+def encode_tree(node, code):  # ENCODE TREE FOR HEADER
     if node.is_leaf():
         code += "1"
         code += f"{ord(node.get_char()):08b}"
@@ -65,25 +94,7 @@ def encode_tree(node, code):    # ENCODE TREE FOR HEADER
     return code
 
 
-def decode_tree(data):  # DECODE TREE FROM HEADER
-    char = data[0]
-    del data[0]
-
-    if char == "1":
-        byte = ""
-        for _ in range(8):
-            byte += data[0]
-            del data[0]
-
-        return Node(char=int(byte, 2))
-    else:
-        left = decode_tree(data)
-        right = decode_tree(data)
-
-        return Node(None, left=left, right=right)
-
-
-def assign_code(node, code=''): # ASSIGN CODES TO A HUFFMAN TREE
+def assign_code(node, code=''):  # ASSIGN CODES TO A HUFFMAN TREE
     if not node.left and not node.right:
         return {node.get_char(): code}
     d = dict()
@@ -105,18 +116,31 @@ def encode(data, language_map, compressed_header, mode=0):  # ENCODE FILE DATA I
     return output
 
 
-def decode(data, language_map): # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
-    code = ""
-    output = []
-    for bit in data:
-        code += bit
-        if code in language_map:
-            output.append(language_map[code])
-            code = ""
-    return output
+def create_output(data, name, mode=0):  # CREATE OUTPUT FILE
+    if mode == 0:
+        b_arr = bytearray()
+        for i in range(0, len(data), 8):
+            b_arr.append(int(data[i:i + 8], 2))
+        try:
+            output_path = open(name, "wb")
+            output_path.write(b_arr)
+            print("Success, data saved at: " + name)
+            return os.stat(name).st_size
+        except IOError:
+            print("Something went wrong")
+            exit(-1)
+    else:
+        try:
+            output_path = open(name, "w", encoding='utf-8', newline='\n')
+            output_path.write(data)
+            print("Success, data saved at: " + name)
+            return os.stat(name).st_size
+        except IOError:
+            print("Something went wrong")
+            exit(-1)
 
 
-def decompress(path):   # DECOMPRESS FILE DATA
+def decompress(path):  # DECOMPRESS FILE DATA
     data = read_file(path, mode=1)
     data = list(data)
 
@@ -153,71 +177,46 @@ def decompress(path):   # DECOMPRESS FILE DATA
             create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), name + str(i) + '.txt', mode=1)
 
 
-def compress(path, mode=0): # COMPRESS FILE DATA
-    if mode == 0:
-        name = str(os.path.splitext(path)[0])
-        data = str(read_file(path), 'utf-8')
-        freq_map = frequency_map(data)
-        language_map, compressed_header = huffman_coding(freq_map)
-        output = encode(data, language_map, compressed_header, mode=mode)
-        output = bytes(output, 'UTF-8')
-        size = create_output(output, name + ".bin", 0)
-    elif mode == 1:
-        os.chdir(path)
-        data = bytes()
-        for file in os.listdir(path):
-            if file.endswith(".txt"):
-                data += read_file(file, mode=0) + b'\x11\x22\x33'
-        data = str(data, 'utf-8')
-        freq_map = frequency_map(data)
-        language_map, compressed_header = huffman_coding(freq_map)
-        output = encode(data, language_map, compressed_header, mode=mode)
-        output = bytes(output, 'UTF-8')
-        os.chdir('..')
-        size = create_output(output, os.path.basename(path)+"_compressed.bin", 0)
-        os.chdir(cwd)
-    return size
+def decode_tree(data):  # DECODE TREE FROM HEADER
+    char = data[0]
+    del data[0]
+
+    if char == "1":
+        byte = ""
+        for _ in range(8):
+            byte += data[0]
+            del data[0]
+
+        return Node(char=int(byte, 2))
+    else:
+        left = decode_tree(data)
+        right = decode_tree(data)
+
+        return Node(None, left=left, right=right)
 
 
-def read_file(path, mode=0):    # READ FILE DATA
+def decode(data, language_map):  # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
+    code = ""
+    output = []
+    for bit in data:
+        code += bit
+        if code in language_map:
+            output.append(language_map[code])
+            code = ""
+    return output
+
+
+def read_file(path, mode=0):  # READ FILE DATA
+    f = open(path, 'rb')
     if mode == 0:
-        f = open(path, 'rb')
         return f.read()
     else:
-        f = open(path, 'rb')
         data = ""
         byte = f.read(1)
         while len(byte) > 0:
             data += f"{bin(ord(byte))[2:]:0>8}"
             byte = f.read(1)
         return data
-
-
-def create_output(data, name, mode=0, first=True):  # CREATE OUTPUT FILE
-    if mode == 0:
-        b_arr = bytearray()
-        for i in range(0, len(data), 8):
-            b_arr.append(int(data[i:i + 8], 2))
-        try:
-            if first:
-                output_path = open(name, "wb")
-            else:
-                output_path = open(name, "ab")
-            output_path.write(b_arr)
-            print("Success, data saved at: " + name)
-            return os.stat(name).st_size
-        except IOError:
-            print("Something went wrong")
-            exit(-1)
-    else:
-        try:
-            output_path = open(name, "w", encoding='utf-8', newline='\n')
-            output_path.write(data)
-            print("Success, data saved at: " + name)
-            return os.stat(name).st_size
-        except IOError:
-            print("Something went wrong")
-            exit(-1)
 
 
 if __name__ == '__main__':
@@ -228,9 +227,34 @@ if __name__ == '__main__':
         original_size = 0
         new_size = 0
         # GET OPERATION FROM USER
-        op = int(input("Compression of a File (0) | Compression of a Folder (1) | Decompression (2) "))
+
+        while True:
+            op = input("Compression of a File (0) | Compression of a Folder (1) | Decompression (2) ")
+            if op is None or op is '':
+                continue
+            else:
+                try:
+                    op = int(op)
+                    if op > 2 or op < 0:
+                        print("Please enter one of the mentioned options")
+                        continue
+                    else:
+                        break
+                except TypeError:
+                    print("Please enter one of the mentioned options")
+
         if op == 0:  # COMPRESSION OF A FILE
             p = str(input("Enter a file name in the current directory "))
+            while True:
+                file_path = os.getcwd() + "\\" + p
+                if os.path.exists(file_path) and p is not '':
+                    break
+                else:
+                    p = input("Enter a valid file name in the current directory ")
+                    if p is not None or p is not '':
+                        p = str(p)
+                    else:
+                        continue
             file_stats = os.stat(p)
             original_size = file_stats.st_size
             start = timeit.timeit()
@@ -238,6 +262,11 @@ if __name__ == '__main__':
             end = timeit.timeit()
         elif op == 1:  # COMPRESSION OF A FOLDER
             p = str(input("Enter path to the directory "))
+            while True:
+                if os.path.exists(p):
+                    break
+                else:
+                    p = str(input("Enter a valid path to the directory "))
             os.chdir(p)
             for f_d in os.listdir(p):
                 if f_d.endswith(".txt"):
@@ -248,12 +277,20 @@ if __name__ == '__main__':
             end = timeit.timeit()
         elif op == 2:  # DECOMPRESSION
             p = str(input("Enter a file name in the current directory "))
+            while True:
+                file_path = os.getcwd() + "\\" + p
+                if os.path.exists(file_path):
+                    break
+                else:
+                    p = str(input("Enter a valid file name in the current directory "))
             start = timeit.timeit()
             decompress(p)
             end = timeit.timeit()
         else:
             print("Enter a valid operation type")
             continue
-        print("Execution time of the program is ", str(abs(round(end - start, 5))) + " seconds")
+        print("Execution time of the program is ", (str('{:.4f}'.format(abs(end - start))) + " seconds"))
         if op != 2:
-            print("Compression rate is ", str((new_size / original_size) * 100) + " %")
+            print("Compression rate is ", str('{:.2f}'.format((100 - (new_size / original_size) * 100))) + " %")
+        x = int(input("Do you want to compress or decompress more files? (0 for NO | 1 for YES) "))
+        run = (x == 1)
