@@ -1,5 +1,5 @@
 import os
-import time
+import timeit
 
 
 class Node:  # HEAP NODE CLASS
@@ -17,6 +17,9 @@ class Node:  # HEAP NODE CLASS
 
     def get_char(self):
         return self.char
+
+
+cwd = os.getcwd()
 
 
 def frequency_map(data):  # FREQUENCY MAP GENERATOR
@@ -122,42 +125,84 @@ def extract_header(char_count, buff):
 def create_header(language_map, padding):
     output = ""
     output += str(len(language_map)) + "\n"
+    header_size = len(bytes(output, 'utf-8'))
     for key in language_map.keys():
         output += key + " " + str(language_map[key]) + "\n"
     output += str(padding) + "\n"
-    return output
+    return output, header_size
 
 
-def decompress(char_count, buff):
-    language_map, padding, data = extract_header(char_count, buff)
-    return decode(data, language_map, padding)
-
-
-def compress(data):
-    freq_map = frequency_map(data)
-    language_map = huffman_coding(freq_map)
-    compressed_data, padding = encode(data, language_map)
-    header = create_header(language_map, padding)
-    output = header + compressed_data
-    output = bytes(output, 'UTF-8')
-    return output
-
-
-def get_file():
-    name = input("Enter file name ")
-    while True:
+def decompress(path):
+    f = open(path, 'rb')
+    n = str(f.readline(), 'utf-8')
+    i = 0
+    while n:
+        name = str(f.readline(), 'utf-8').rstrip()
         try:
-            file = open(name, 'rb')
+            n = int(n)
+        except ValueError:
             break
-        except IOError:
-            name = input("Enter a valid file name ")
-    return name, file
+        char_count = int(str(f.readline(), 'utf-8'))
+        buff = f.read(n)
+        language_map, padding, data = extract_header(char_count, buff)
+        data = decode(data, language_map, padding)
+        create_output(data, name + ".txt", mode=1)
+        i += 1
+        n = str(f.readline(), 'utf-8')
 
 
-def create_output(data, name, extension, mode=0):
+def compress(path, mode=0):
+    if mode == 0:
+        name = str(os.path.splitext(path)[0])
+        name = name + '\n'
+        data = str(read_file(path), 'utf-8')
+        freq_map = frequency_map(data)
+        language_map = huffman_coding(freq_map)
+        compressed_data, padding = encode(data, language_map)
+        header, header_size = create_header(language_map, padding)
+        output = name + header + compressed_data
+        header_size += len(bytes(name, 'UTF-8'))
+        output = bytes(output, 'UTF-8')
+        output = b"".join([bytes(str(len(output) - header_size) + "\n", 'utf-8'), output])
+        size = create_output(output, path, 0)
+    elif mode == 1:
+        os.chdir(path)
+        first = True
+        for file in os.listdir(path):
+            if file.endswith(".txt"):
+                name = str(os.path.splitext(file)[0])
+                name = name + '\n'
+                data = str(read_file(file), 'utf-8')
+                freq_map = frequency_map(data)
+                language_map = huffman_coding(freq_map)
+                compressed_data, padding = encode(data, language_map)
+                header, header_size = create_header(language_map, padding)
+                output = name + header + compressed_data
+                header_size += len(bytes(name, 'UTF-8'))
+                output = bytes(output, 'UTF-8')
+                output = b"".join([bytes(str(len(output) - header_size) + "\n", 'utf-8'), output])
+                os.chdir('..')
+                size = create_output(output, "Compressed.bin", 0, first)
+                os.chdir(path)
+                first = False
+        os.chdir(cwd)
+    return size
+
+
+def read_file(path):
+    f = open(path, 'rb')
+    return f.read()
+
+
+def create_output(data, path, mode=0, first=True):
+    extension = os.path.splitext(path)[1]
+    name = str(os.path.splitext(path)[0])
     if mode == 0:
         try:
-            output_path = open(name + extension, "wb")
+            if first:
+                output_path = open(name + extension, "wb")
+            else:
+                output_path = open(name + extension, "ab")
             output_path.write(data)
             print("Success, data saved at: " + name + extension)
             return os.stat(name + extension).st_size
@@ -177,60 +222,36 @@ def create_output(data, name, extension, mode=0):
 
 if __name__ == '__main__':
     run = True
-    start = 0
-    end = 0
+    print("Enter operation type:")
 
     while run:
-        # GET FILE NAME
-        file_data = ""
-        filename, f = get_file()
-        file_stats = os.stat(filename)
-        filename, file_extension = os.path.splitext(filename)
-        original_size = file_stats.st_size
-
-        # GET OPERATION TYPE ( COMPRESSION or DECOMPRESSION )
-        while True:
-            op_type = int(input("Enter the mode (0 for Compression | 1 for Decompression) "))
-            if op_type == 0:
-                file_data = f.read()
-                file_data = str(file_data, 'utf-8')
-                # GET COMPRESSED FILE TYPE
-                file_extension = int(input("Enter the compression file type (0 for .txt | 1 for .bin) "))
-
-                if file_extension == 0:
-                    file_extension = ".txt"
-                else:
-                    file_extension = ".bin"
-
-                start = time.time()
-                file_data = compress(file_data)
-                end = time.time()
-                break
-
-            elif op_type == 1:
-                n = f.readline()
-                file_data = f.read()
-
-                try:
-                    n = int(n)
-                except TypeError:
-                    print("Invalid file structure")
-                    exit(-1)
-
-                start = time.time()
-                file_data = decompress(n, file_data)
-                end = time.time()
-                file_extension = ".txt"
-                break
-            else:
-                print("Please enter a valid number")
-                continue
-
-        new_size = create_output(file_data, filename, file_extension, op_type)
-        if op_type == 0:
-            percentage = format(new_size / original_size * 100, ".2f")
-            print(f"Compression percentage is {percentage}%")
-        total = format((end - start) * 1000, ".2f")
-        print(f"The execution time of the program is {total}ms")
-        x = int(input("Do you want to compress or decompress more files? (0 for NO | 1 for YES) "))
-        run = (x == 1)
+        original_size = 0
+        new_size = 0
+        # GET OPERATION FROM USER
+        op = int(input("Compression of a File (0) | Compression of a Folder (1) | Decompression (2) "))
+        if op == 0:  # COMPRESSION OF A FILE
+            p = str(input("Enter a file name in the current directory "))
+            file_stats = os.stat(p)
+            original_size = file_stats.st_size
+            start = timeit.timeit()
+            new_size = compress(p, op)
+            end = timeit.timeit()
+        elif op == 1:  # COMPRESSION OF A FOLDER
+            p = str(input("Enter path to the directory "))
+            for f_d in os.listdir(p):
+                if f_d.endswith(".txt"):
+                    original_size += os.stat(f_d).st_size
+            start = timeit.timeit()
+            new_size = compress(p, op)
+            end = timeit.timeit()
+        elif op == 2:  # DECOMPRESSION
+            p = str(input("Enter a file name in the current directory "))
+            start = timeit.timeit()
+            decompress(p)
+            end = timeit.timeit()
+        else:
+            print("Enter a valid operation type")
+            continue
+        print("Execution time of the program is ", str(abs(round(end - start, 5))) + " seconds")
+        if op != 2:
+            print("Compression rate is ", str((new_size / original_size) * 100) + " %")
