@@ -1,16 +1,17 @@
 import os
 import timeit
+import array
 
 
 class Node:  # HEAP NODE CLASS
-    def __init__(self, value, char=None, left=None, right=None):
+    def __init__(self, value=None, char=None, left=None, right=None):
         self.value = value
         self.char = char
         self.left = left
         self.right = right
 
-    def get_children(self):
-        return self.left, self.right
+    def is_leaf(self):
+        return self.left is None and self.right is None
 
     def get_value(self):
         return self.value
@@ -48,11 +49,41 @@ def huffman_coding(freq_map):
         while i < len(nodes) and node.get_value() > nodes[i].get_value():
             i += 1
         nodes[i:i] = [node]
+    compressed_tree = encode_tree(nodes[0], "")
     d = assign_code(nodes[0], '')
-    return d
+    return d, compressed_tree
 
 
-def assign_code(node, code):
+def encode_tree(node, code):
+    if node.is_leaf():
+        code += "1"
+        code += f"{ord(node.get_char()):08b}"
+    else:
+        code += "0"
+        code = encode_tree(node.left, code)
+        code = encode_tree(node.right, code)
+    return code
+
+
+def decode_tree(data):
+    char = data[0]
+    del data[0]
+
+    if char == "1":
+        byte = ""
+        for _ in range(8):
+            byte += data[0]
+            del data[0]
+
+        return Node(char=int(byte, 2))
+    else:
+        left = decode_tree(data)
+        right = decode_tree(data)
+
+        return Node(None, left=left, right=right)
+
+
+def assign_code(node, code=''):
     if not node.left and not node.right:
         return {node.get_char(): code}
     d = dict()
@@ -61,43 +92,26 @@ def assign_code(node, code):
     return d
 
 
-def encode(data, language_map):
+def encode(data, language_map, compressed_header, mode=0):
+    compressed_header = str(mode) + compressed_header
     output = ""
     bits = ""
-    i = 0
-    padding = 0
     for char in data:
         bits += language_map[char]
-        if len(bits) > 8:
-            bit_code = bits[i:i + 8]
-            bit_code = chr(int(bit_code, 2))
-            output += bit_code
-            bits = bits[i + 8:]
-    while len(bits) > 0:
-        bit_code = bits[i:i + 8]
-        while len(bit_code) < 8:
-            bit_code = bit_code + '0'
-            padding += 1
-        bit_code = chr(int(bit_code, 2))
-        output += bit_code
-        bits = bits[i + 8:]
-    return output, padding
+    num = 8 - (len(bits) + len(compressed_header)) % 8
+    if num != 0:
+        output = num * "0" + bits
+    output = f"{compressed_header}{num:08b}{output}"
+    return output
 
 
-def decode(data, language_map, padding):
-    output = ""
-    bits = ""
+def decode(data, language_map):
     code = ""
-    for c in data:
-        c = ord(c)
-        c = f'{c:08b}'
-        bits += c
-    if padding > 0:
-        bits = bits[:-padding]
-    for bit in bits:
+    output = []
+    for bit in data:
         code += bit
         if code in language_map:
-            output += language_map[code]
+            output.append(language_map[code])
             code = ""
     return output
 
@@ -134,57 +148,63 @@ def create_header(language_map, padding):
 
 def decompress(path):
     f = open(path, 'rb')
-    n = str(f.readline(), 'utf-8')
-    i = 0
-    while n:
-        name = str(f.readline(), 'utf-8').rstrip()
-        try:
-            n = int(n)
-        except ValueError:
-            break
-        char_count = int(str(f.readline(), 'utf-8'))
-        buff = f.read(n)
-        language_map, padding, data = extract_header(char_count, buff)
-        data = decode(data, language_map, padding)
-        create_output(data, name + ".txt", mode=1)
-        i += 1
-        n = str(f.readline(), 'utf-8')
+    data = ""
+
+    # Read the file byte by byte
+    byte = f.read(1)
+    while len(byte) > 0:
+        data += f"{bin(ord(byte))[2:]:0>8}"
+        byte = f.read(1)
+    data = list(data)
+    mode = int(data[0])
+    del data[0]
+    node = decode_tree(data)
+    d = assign_code(node)
+    reversed_tree = {v: k for k, v in d.items()}
+    n_padding = data[:8]
+    n_padding = int("".join(n_padding), 2)
+    data = data[8:]
+    data = data[n_padding:]
+    data = decode(data, reversed_tree)
+    if mode == 0:
+        output = ""
+        for num in data:
+            output += format(num, '08b')
+
+        b_arr = bytearray()
+
+        for i in range(0, len(output), 8):
+            b_arr.append(int(output[i:i + 8], 2))
+
+        create_output(str(b_arr, 'utf-8'), path, mode=1)
+    else:
+        op_files = array.array('B', data).tobytes().split(b'\x11\x22\x33')
+        for i, file in enumerate(op_files[0:len(op_files) - 1]):
+            create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), 'decompressed' + str(i) + '.txt', mode=1)
 
 
 def compress(path, mode=0):
     if mode == 0:
-        name = str(os.path.splitext(path)[0])
-        name = name + '\n'
         data = str(read_file(path), 'utf-8')
         freq_map = frequency_map(data)
-        language_map = huffman_coding(freq_map)
-        compressed_data, padding = encode(data, language_map)
-        header, header_size = create_header(language_map, padding)
-        output = name + header + compressed_data
-        header_size += len(bytes(name, 'UTF-8'))
+        language_map, compressed_header = huffman_coding(freq_map)
+        output = encode(data, language_map, compressed_header, mode=mode)
         output = bytes(output, 'UTF-8')
-        output = b"".join([bytes(str(len(output) - header_size) + "\n", 'utf-8'), output])
         size = create_output(output, path, 0)
     elif mode == 1:
         os.chdir(path)
-        first = True
+        data = bytes()
         for file in os.listdir(path):
             if file.endswith(".txt"):
-                name = str(os.path.splitext(file)[0])
-                name = name + '\n'
-                data = str(read_file(file), 'utf-8')
-                freq_map = frequency_map(data)
-                language_map = huffman_coding(freq_map)
-                compressed_data, padding = encode(data, language_map)
-                header, header_size = create_header(language_map, padding)
-                output = name + header + compressed_data
-                header_size += len(bytes(name, 'UTF-8'))
-                output = bytes(output, 'UTF-8')
-                output = b"".join([bytes(str(len(output) - header_size) + "\n", 'utf-8'), output])
-                os.chdir('..')
-                size = create_output(output, "Compressed.bin", 0, first)
-                os.chdir(path)
-                first = False
+                data += read_file(file) + b'\x11\x22\x33'
+        data = str(data, 'utf-8')
+        freq_map = frequency_map(data)
+        language_map, compressed_header = huffman_coding(freq_map)
+        output = encode(data, language_map, compressed_header, mode=mode)
+        output = bytes(output, 'UTF-8')
+        os.chdir('..')
+        size = create_output(output, "Compressed.bin", 0)
+        os.chdir(path)
         os.chdir(cwd)
     return size
 
@@ -198,12 +218,15 @@ def create_output(data, path, mode=0, first=True):
     extension = os.path.splitext(path)[1]
     name = str(os.path.splitext(path)[0])
     if mode == 0:
+        b_arr = bytearray()
+        for i in range(0, len(data), 8):
+            b_arr.append(int(data[i:i + 8], 2))
         try:
             if first:
                 output_path = open(name + extension, "wb")
             else:
                 output_path = open(name + extension, "ab")
-            output_path.write(data)
+            output_path.write(b_arr)
             print("Success, data saved at: " + name + extension)
             return os.stat(name + extension).st_size
         except IOError:
