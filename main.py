@@ -33,7 +33,7 @@ def frequency_map(data):  # FREQUENCY MAP GENERATOR
     return frequency
 
 
-def huffman_coding(freq_map):
+def huffman_coding(freq_map):   # HUFFMAN CODING ALGORITHM
     freq_map = sorted(freq_map.items(), key=lambda x: x[1])
     nodes = []
     for key, value in freq_map:
@@ -54,7 +54,7 @@ def huffman_coding(freq_map):
     return d, compressed_tree
 
 
-def encode_tree(node, code):
+def encode_tree(node, code):    # ENCODE TREE FOR HEADER
     if node.is_leaf():
         code += "1"
         code += f"{ord(node.get_char()):08b}"
@@ -65,7 +65,7 @@ def encode_tree(node, code):
     return code
 
 
-def decode_tree(data):
+def decode_tree(data):  # DECODE TREE FROM HEADER
     char = data[0]
     del data[0]
 
@@ -83,7 +83,7 @@ def decode_tree(data):
         return Node(None, left=left, right=right)
 
 
-def assign_code(node, code=''):
+def assign_code(node, code=''): # ASSIGN CODES TO A HUFFMAN TREE
     if not node.left and not node.right:
         return {node.get_char(): code}
     d = dict()
@@ -92,7 +92,7 @@ def assign_code(node, code=''):
     return d
 
 
-def encode(data, language_map, compressed_header, mode=0):
+def encode(data, language_map, compressed_header, mode=0):  # ENCODE FILE DATA INTO THEIR EQUIVALENT CODES
     compressed_header = str(mode) + compressed_header
     output = ""
     bits = ""
@@ -105,7 +105,7 @@ def encode(data, language_map, compressed_header, mode=0):
     return output
 
 
-def decode(data, language_map):
+def decode(data, language_map): # DECODE FILE DATA FROM THEIR EQUIVALENT CODES
     code = ""
     output = []
     for bit in data:
@@ -116,7 +116,7 @@ def decode(data, language_map):
     return output
 
 
-def decompress(path):
+def decompress(path):   # DECOMPRESS FILE DATA
     data = read_file(path, mode=1)
     data = list(data)
 
@@ -153,7 +153,7 @@ def decompress(path):
             create_output(str(op_files[i][:len(op_files[i])], 'utf-8'), name + str(i) + '.txt', mode=1)
 
 
-def compress(path, mode=0):
+def compress(path, mode=0): # COMPRESS FILE DATA
     if mode == 0:
         name = str(os.path.splitext(path)[0])
         data = str(read_file(path), 'utf-8')
@@ -179,7 +179,7 @@ def compress(path, mode=0):
     return size
 
 
-def read_file(path, mode=0):
+def read_file(path, mode=0):    # READ FILE DATA
     if mode == 0:
         f = open(path, 'rb')
         return f.read()
@@ -193,30 +193,28 @@ def read_file(path, mode=0):
         return data
 
 
-def create_output(data, path, mode=0, first=True):
-    extension = os.path.splitext(path)[1]
-    name = str(os.path.splitext(path)[0])
+def create_output(data, name, mode=0, first=True):  # CREATE OUTPUT FILE
     if mode == 0:
         b_arr = bytearray()
         for i in range(0, len(data), 8):
             b_arr.append(int(data[i:i + 8], 2))
         try:
             if first:
-                output_path = open(name + extension, "wb")
+                output_path = open(name, "wb")
             else:
-                output_path = open(name + extension, "ab")
+                output_path = open(name, "ab")
             output_path.write(b_arr)
-            print("Success, data saved at: " + name + extension)
-            return os.stat(name + extension).st_size
+            print("Success, data saved at: " + name)
+            return os.stat(name).st_size
         except IOError:
             print("Something went wrong")
             exit(-1)
     else:
         try:
-            output_path = open(name + extension, "w", encoding='utf-8', newline='\n')
+            output_path = open(name, "w", encoding='utf-8', newline='\n')
             output_path.write(data)
-            print("Success, data saved at: " + name + extension)
-            return os.stat(name + extension).st_size
+            print("Success, data saved at: " + name)
+            return os.stat(name).st_size
         except IOError:
             print("Something went wrong")
             exit(-1)
