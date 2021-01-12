@@ -238,9 +238,11 @@ if __name__ == '__main__':
             end = timeit.timeit()
         elif op == 1:  # COMPRESSION OF A FOLDER
             p = str(input("Enter path to the directory "))
+            os.chdir(p)
             for f_d in os.listdir(p):
                 if f_d.endswith(".txt"):
                     original_size += os.stat(f_d).st_size
+            os.chdir(cwd)
             start = timeit.timeit()
             new_size = compress(p, op)
             end = timeit.timeit()
