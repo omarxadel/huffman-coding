@@ -230,7 +230,7 @@ if __name__ == '__main__':
 
         while True:
             op = input("Compression of a File (0) | Compression of a Folder (1) | Decompression (2) ")
-            if op is None or op is '':
+            if op is None or op == '':
                 continue
             else:
                 try:
@@ -247,11 +247,11 @@ if __name__ == '__main__':
             p = str(input("Enter a file name in the current directory "))
             while True:
                 file_path = os.getcwd() + "\\" + p
-                if os.path.exists(file_path) and p is not '':
+                if os.path.exists(file_path) and p != '':
                     break
                 else:
                     p = input("Enter a valid file name in the current directory ")
-                    if p is not None or p is not '':
+                    if p is not None or p != '':
                         p = str(p)
                     else:
                         continue
