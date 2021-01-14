@@ -20,19 +20,19 @@ The output header file is: `00101100011101100010101100001`
 
 # Algorithm
 1. Compression
-  1. read file
-  1. create frequency map for characters
-  1. create min heap as per character frequency
-  1. construct huffman tree from min heap
-  1. create language map that translates each character to codeword as per huffman tree encoding
-  1. encode the huffman tree into bits (1 before a leaf node, 0 before a parent)1
-  1. convert each character in the file to its equivalent character and add the encoded tree
-  1. end
+    1. read file
+    1. create frequency map for characters
+    1. create min heap as per character frequency
+    1. construct huffman tree from min heap
+    1. create language map that translates each character to codeword as per huffman tree encoding
+    1. encode the huffman tree into bits (1 before a leaf node, 0 before a parent)1
+    1. convert each character in the file to its equivalent character and add the encoded tree
+    1. end
 1. Decompression
-  1. read file
-  1. decode the encoded tree and create language map that translates bit patterns to characters
-  1. convert each bit pattern to its equivalent character in the file
-  1. end
+    1. read file
+    1. decode the encoded tree and create language map that translates bit patterns to characters
+    1. convert each bit pattern to its equivalent character in the file
+    1. end
 # Contributing
 Please feel free to submit issues and pull requests. I appreciate bug reports.
 
